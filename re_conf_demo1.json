@@ -1,0 +1,73 @@
+{
+  "scene":{
+    "film":{
+      "aspect_ratio":2,
+      "width":1400
+    },
+    "camera":{
+      "type":"default",
+      "postion":[278.0, 273.0, -800.0],
+      "lookat":[278.0, 273.0, 0.0],
+      "up":[0.0, 1.0, 0.0],
+      "focus_dist":10.0,
+      "aperture":0.0,
+      "fov":90.0
+    },
+    "env_light":{
+      "type":"ibl",
+      "intensity":4.0,
+      "color":[1.0, 1.0, 1.0],
+      "texture":"./data/je_gray_park_4k.hdr"
+    },
+    "models":[
+      {
+        "type":"MeshTriangle",
+        "filename":"./data/models/spot/spot_triangulated_good.obj",
+        "texture":"./data/models/spot/spot_texture.png",
+        "material":{
+          "type":"Lambert",
+          "color":[1.0,1.0,1.0]
+        },
+        "transformation":{
+          "translation":[485,0,245],
+          "scale":180,
+          "routeY":0.167
+        }
+      },
+      {
+        "type":"MeshTriangle",
+        "filename":"./data/models/cornellbox/shortbox.obj",
+        "material":{
+          "type":"Lambert",
+          "color":[1.0,1.0,1.0]
+        }
+      },
+      {
+        "type":"Sphere",
+        "center":[610.0, 310.0, 290.0],
+        "radius":90.0,
+        "material": {
+          "type":"Dielectric",
+          "ior":1.5
+        }
+      },
+      {
+        "type":"Sphere",
+        "center":[10.0, 510.0, 290.0],
+        "radius":90.0,
+        "material":{
+          "type":"Metal",
+          "color":[0.9, 0.6, 0.2],
+          "roughness":0.0
+        }
+      }
+    ]
+  },
+  "render":{
+    "type":"path_tracing",
+    "img_writer":"ti",
+    "spp":300,
+    "max_depth":10,
+    "output":"out/demo1_out.jpg"
+  }
+}
