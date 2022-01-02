@@ -10,7 +10,29 @@
 taichi、numpy、pillow、pika、opencv-python  
 ## 运行环境
 系统windows10 、python 3.6.1、taichi 0.8.4 ；如果想尝试分布式生成‘纸飞机’的需要安装RabbitMQ
-  
+
+## 整体结构（Optional）
+```
+-|config 
+   base.json 分布式任务执行配置文件
+-|data  模型贴图等数据
+-|engine taichi_elements的代码
+-|loader 加载模型文件工具
+-|render 渲染程序相关
+-main_task.py 分布式任务主程序
+-re_conf_cornellbox.json 康纳尔盒子场景描述文件
+-re_conf_demo1.json 环境贴图场景描述文件
+-re_conf_pplan.json 纸飞机单个图片渲染的场景描述文件（测试用的，若要使用要改里面模型文件的地址）
+-re_conf_pplan_sim.json 仿真渲染纸飞机的模板场景描述文件
+-README.MD
+-render_consumer.py 基于mq渲染的消费者，为main_task.py调用
+-sim_paper_plan.py 调用taichi_elements的mpm_solver仿真的程序为main_task.py调用
+-test_env_light.py 测试环境光渲染的，不用场景描述文件的方式
+-test_render_entry.py 使用场景描述文件渲染单个图片的
+-utils.py taichi_elements的工具
+-video_task.py 合成视频的工具
+```
+
 ## 渲染demo
 * cornellbox渲染
    参考命令： python test_render_entry.py re_conf_cornellbox.json 
