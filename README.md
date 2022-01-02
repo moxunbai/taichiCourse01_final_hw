@@ -1,9 +1,10 @@
 # 太极第一季大作业-“纸飞机”
-大作业主要做的是模拟仿真‘纸飞机’在‘空气中’飞行，并渲染成视频，其中仿真部分是用的[taichi_elements](https://github.com/taichi-dev/taichi_elements)的代码；渲染部分是再之前作业的基础上优化调整后的。并实现了一个简单的基于RabbitMQ消息中间件的分布式方案来均衡利用多台主机（本地一台台式机一台笔记本）的GPU算力来更快的仿真、渲染、合成视频；项目详情请查看[太极图形论坛]( )提交信息。
 
 
+## 背景简介
+大作业主要做的是模拟仿真‘纸飞机’在‘空气中’飞行，并渲染成视频，其中仿真部分是用的[taichi_elements](https://github.com/taichi-dev/taichi_elements)的代码；渲染部分是再之前作业的基础上优化调整后的。并实现了一个简单的基于RabbitMQ消息中间件的分布式方案来均衡利用多台主机（本地一台台式机一台笔记本）的GPU算力来更快的仿真、渲染、合成视频；项目详情请查看[太极图形论坛](https://forum.taichi.graphics/t/topic/2246)提交信息。
 ## 渲染效果 
-[纸飞机]( )
+[纸飞机](https://www.bilibili.com/video/BV1XT4y127Yu/ )
  
 ## 依赖模块
 taichi、numpy、pillow、pika、opencv-python  
