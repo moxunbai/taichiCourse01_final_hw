@@ -48,7 +48,7 @@ class Voxelizer:
                            triangles: ti.ext_arr() ):
         for i in range(num_triangles):
             jitter_scale = ti.cast(0, self.precision)
-            if ti.static(self.precision is ti.f32):
+            if ti.static(self.precision == ti.f32):
                 jitter_scale = 1e-4
             else:
                 jitter_scale = 1e-8
@@ -64,9 +64,6 @@ class Voxelizer:
             c = ti.Vector([triangles[i, 6], triangles[i, 7], triangles[i, 8]
                            ]) + jitter
 
-            # a = ti.Vector(vertexs[faces[i, 0]]) + jitter
-            # b = ti.Vector(vertexs[faces[i, 1]]) + jitter
-            # c = ti.Vector(vertexs[faces[i, 2]]) + jitter
 
             bound_min = ti.Vector.zero(self.precision, 3)
             bound_max = ti.Vector.zero(self.precision, 3)
@@ -130,7 +127,7 @@ class Voxelizer:
         self.voxelize_triangles(num_triangles, triangles)
 
 
-    def voxelize(self, meshs):
+    def voxelize(self, meshs,fn_type="ply"):
         # assert isinstance(meshs, np.ndarray)
         triangles = meshs["vertexs"].astype(np.float64)
         # assert triangles.dtype in [np.float32, np.float64]
@@ -147,11 +144,17 @@ class Voxelizer:
         self.block.deactivate_all()
         num_triangles = len(faces)
         triangles = np.zeros((num_triangles, 9), dtype=np.float32)
+        idx_offset = 0
+        if fn_type == 'obj':
+            idx_offset = 1
         for i in range(num_triangles):
             # for d in range(3):
-                triangles[i, 0:3] = vertexs[faces[i,0]]
-                triangles[i, 3:6] = vertexs[faces[i,1]]
-                triangles[i, 6:9] = vertexs[faces[i,2]]
+            # ply格式
+
+            # obj格式
+                triangles[i, 0:3] = vertexs[faces[i,0]-idx_offset]
+                triangles[i, 3:6] = vertexs[faces[i,1]-idx_offset]
+                triangles[i, 6:9] = vertexs[faces[i,2]-idx_offset]
 
         self.voxelize_triangles(num_triangles,triangles )
 

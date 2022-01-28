@@ -6,7 +6,7 @@ from render.render_entry  import *
 if __name__ == '__main__':
    conf_fn=None
    if len(sys.argv)==1:
-      conf_fn ="re_conf_cornellbox.json"
+      conf_fn ="config/re_conf_cornellbox.json"
    else:
       conf_fn = sys.argv[1]
    if not os.path.exists("out"):
@@ -15,7 +15,9 @@ if __name__ == '__main__':
 
    entry=RenderEntry(conf_fn)
    scene=entry.scene
+   t1=time()
    entry.commit()
+   print("Scene commit cost:", time() - t1)
    entry.run()
 
    # templ={

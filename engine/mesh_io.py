@@ -45,56 +45,47 @@ end_header
 
 
 def write_obj(fn, vertices, faces, vnormals=None, texcoords=None):
-    with open(fn, 'w') as file_object:
+    # with open(fn, 'w') as file_object:
         nv = len(vertices)
         nf = len(faces)
         if nv > 0:
-            file_object.write("# Object spot_triangulated_good.obj\n")
-            file_object.write("# Vertices:" + str(nv) + "\n")
-            file_object.write("# Faces:" + str(nf) + "\n")
+            fo = open(fn, "w")
+            print("# Object spot_triangulated_good.obj\n", file = fo)
+            print("# Vertices:%d\n"%(nv), file = fo)
+            print("# Faces::%d\n"%(nf), file = fo)
+            has_tex = texcoords is not None and len(texcoords) > 0
+            has_normal=vnormals is not None and len(vnormals) > 0
             for i in range(nv):
 
-                if vnormals is not None and len(vnormals) > 0:
-                    nor = vnormals[i]
-                    file_object.write("vn " + str(nor[0]) + " " + str(nor[1]) + " " + str(nor[2]) + "\n")
-                if texcoords is not None and len(texcoords) > 0:
-                    tex = texcoords[i]
-                    file_object.write("vt " + str(tex[0]) + " " + str(tex[1]) + "\n")
+                if has_normal:
+                    print("vn %f %f %f" % (vnormals[i, 0], vnormals[i, 1], vnormals[i, 2]), file=fo)
+
+                if has_tex:
+                    print("vt %f %f" % (texcoords[i, 0], texcoords[i, 1] ), file=fo)
                 vet = vertices[i]
-                file_object.write("v " + str(vet[0]) + " " + str(vet[1]) + " " + str(vet[2]) + "\n")
+                print("v %f %f %f" % (vet[0], vet[1], vet[2]), file=fo)
 
-            file_object.write("\n")
             for i in range(nf):
-                face =[str(x) for x in faces[i]]
+                # face =[str(x) for x in faces[i]]
+                face = faces[i]
                 txt = [[face[0]], [face[1]], [face[2]]]
-                vn = ["0", "0", "0"]
-                vtex = ["0", "0", "0"]
+                vn = [0, 0, 0]
+                vtex = [0, 0, 0]
+                if has_tex:
+                    vtex=face
+                if has_normal:
+                    vn=face
+                print("f %d/%d/%d %d/%d/%d %d/%d/%d" % (face[0],vtex[0],vn[0],face[1],vtex[1],vn[1],face[2],vtex[2],vn[2]), file=fo)
 
-                if texcoords is not None and len(texcoords) > 0:
-                    vtex = face
-
-                txt[0].append(vtex[0])
-                txt[1].append(vtex[1])
-                txt[2].append(vtex[2])
-
-                if vnormals is not None and len(vnormals) > 0:
-                    vn = face
-                txt[0].append(vn[0])
-                txt[1].append(vn[1])
-                txt[2].append(vn[2])
-
-                txt[0] = "/".join(txt[0])
-                txt[1] = "/".join(txt[1])
-                txt[2] = "/".join(txt[2])
-                file_object.write("f " + " ".join(txt) + "\n")
-            file_object.write("# End of File \n")
+            print("# End of File \n", file=fo)
+            fo.close()
 
 
-def transform(points,scale):
+def zoom_model(points,scale,div=1):
 
     bound_min=np.amin(points,0 )
     bound_max=np.amax(points,0 )
     center=(bound_min+bound_max)/2
     result=np.subtract(points,center)*scale
-    return np.add(result,center/6)
+    return np.add(result,center/div)
     # for i in len(points):

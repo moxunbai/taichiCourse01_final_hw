@@ -1,0 +1,46 @@
+{
+  "scene":{
+    "film":{
+      "aspect_ratio":1,
+      "width":700
+    },
+    "camera":{
+      "type":"default",
+      "postion":[278.0, 273.0, -800.0],
+      "lookat":[278.0, 273.0, 0.0],
+      "up":[0.0, 1.0, 0.0],
+      "focus_dist":10.0,
+      "aperture":0.0,
+      "fov":90.0
+    },
+    "env_light":{
+      "type":"ibl",
+      "intensity":4.0,
+      "color":[1.0, 1.0, 1.0],
+      "texture":"./data/wide_street_01_4k.hdr"
+    },
+    "models":[
+      {
+        "type":"MeshTriangle",
+        "filename":"./data/models/mc_1.obj",
+        "material":{
+          "type":"Dielectric",
+          "ior":1.5
+        },
+        "transformation":{
+          "translation":[485,0,145],
+          "scale":180,
+          "routeY":0
+        }
+      }
+
+    ]
+  },
+  "render":{
+    "type":"path_tracing",
+    "img_writer":"ti",
+    "spp":300,
+    "max_depth":10,
+    "output":"out/demo1_out.jpg"
+  }
+}

@@ -128,7 +128,7 @@ class BVHS:
     def __init__(self):
         self.root_list = []
         self.total_count = 0
-        self.max_bvh_ele=30000
+        self.max_bvh_ele=288360
         self.bvh_obj_id = ti.field(ti.i32)
         self.bvh_left_id = ti.field(ti.i32)
         self.bvh_right_id = ti.field(ti.i32)
@@ -163,7 +163,7 @@ class BVHS:
         n_root=len(self.root_list)
 
         if self.max_bvh_ele<self.total_count:
-            raise Exception('bvh 节点数大于分配的最大数!')
+            raise Exception('bvh 当前节点数:%d 大于阈值:%d !'%(self.total_count,self.max_bvh_ele))
 
 
         # first walk tree and give ids

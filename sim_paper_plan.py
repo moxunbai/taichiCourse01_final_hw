@@ -8,12 +8,12 @@ import utils
 from utils import create_output_folder
 from engine.mpm_solver import MPMSolver
 from engine.mesh_io import write_obj
-from engine.mesh_io import transform
+# from engine.mesh_io import transform
 
-# with_gui = True
-with_gui = False
-write_to_disk = True
-# write_to_disk = False
+with_gui = True
+# with_gui = False
+# write_to_disk = True
+write_to_disk = False
 
 faces=None
 num_vets=0
@@ -55,13 +55,13 @@ def load_mesh(fn, scale, offset):
     # return triangles
     return {"vertexs":vertexs,"faces":faces}
 
-meshs = load_mesh('./data/models/paper_plan/paper_plane.ply', scale=0.004, offset=(0.3, 0.6, 0.5))
+meshs = load_mesh('./data/models/paper_plan/paper_plane.ply', scale=0.004, offset=(0.3, 0.72, 0.5))
 ti.root.dense(ti.i, len(meshs['faces'])).place(mesh_faces)
 ti.root.dense(ti.i, num_vets).place(obj_normals)
 # Use 512 for final simulation/render
 R = 128
 
-mpm = MPMSolver(res=(R, R, R), size=1, unbounded=True, water_density=1.0,dt_scale=1)
+mpm = MPMSolver(res=(R, R, R), size=1, unbounded=False, water_density=1.0,dt_scale=1)
 
 mpm.add_surface_collider(point=(0, 0, 0),
                          normal=(0, 1, 0),
@@ -114,7 +114,6 @@ def visualize(particles):
     screen_pos = np.stack([screen_x, screen_y], axis=-1)
     p_colors=particles['color']
     p_colors = p_colors[mesh_vetx_start:(mesh_vetx_start + num_vets)]
-    print(p_colors[0])
 
     gui.circles(screen_pos, radius=0.8, color= p_colors )
     gui.show()
@@ -124,14 +123,15 @@ counter = 0
 
 start_t = time.time()
 
-color = 155 * 65536 + 55 * 256 + 205
+color = 255 * 65536 + 255 * 256 + 255
 
-mpm.add_mesh(meshs=meshs,
+mesh_id=mpm.add_mesh(meshs=meshs,
                      material=MPMSolver.material_elastic,
                      color=color,
                      sample_density=4,
+                     # velocity=(-20, 3.5265, 0),
                      velocity=(-20, 3.5265, 0),
-                     translation=((4.5 + 0.5) * 0.25, 0.8, (2) * 0.1))
+                     translation=((2.5 + 0.5) * 0.25, 0.2, (1) * 0.1))
 mpm.add_cube(lower_corner=[0.0, 0, 0.0],
                      cube_size=[1.0, 1.0, 1.0],
                      color=0x14FF22,
@@ -158,23 +158,27 @@ def run(iter_num,out_base_dir,callback):
             visualize(particles)
 
         if write_to_disk :
-            particles = mpm.particle_info()
-            mesh_vetx_idx=particles['mesh_vetx_idx']
-            np_x = particles['position']
+            # particles = mpm.particle_info()
+            # mesh_vetx_idx=particles['mesh_vetx_idx']
+            # np_x = particles['position']
 
-            mesh_vetx_start=mesh_vetx_idx[0]
+            # mesh_vetx_start=mesh_vetx_idx[0]
 
-            points = np.subtract(np_x[mesh_vetx_start:(mesh_vetx_start+num_vets),:],trans)*2*R
-            points=transform(points,100)
-            points=np.subtract(points,trans2*10 )*15
+            # points = np.subtract(np_x[mesh_vetx_start:(mesh_vetx_start+num_vets),:],trans)*2*R
+            # points=transform(points,100)
+            # points=np.subtract(points,trans2*10 )*15
             # gen_vertex_normal(len(faces), num_vets, points )
             # new_normals = obj_normals.to_numpy()
 
             # 全部写入
             filename=f'{frame:05d}.obj'
 
-            write_obj(output_dir+"/"+filename,points.tolist(),faces_obj,None,None)
+            # write_obj(output_dir+"/"+filename,points.tolist(),faces_obj,None,None)
+            mpm.export_mesh_obj(mesh_id, output_dir+"/"+filename, 1)
             callback(output_dir,frame,filename)
 
         print(f'Frame total time {time.time() - t:.3f}')
         print(f'Total running time {time.time() - start_t:.3f}')
+
+if __name__ == '__main__':
+    run(15000,"out",None)

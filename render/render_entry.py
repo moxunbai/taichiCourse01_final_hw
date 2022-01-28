@@ -71,7 +71,7 @@ class RenderEntry:
          hitRecord = self.scene.hit_all(ray_org, ray_dir)
          if not hitRecord.is_hit:
             if  self.scene.env_light !=0:
-              col=self.scene.env_light.get_radiance_bydir(ray_dir)
+              col=self.scene.env_light.get_radiance_bydir(ray_dir)*coefficient
             # print(col)
             else:
                 col = ti.Vector([0.0, 0.0, 0.0])
@@ -89,7 +89,8 @@ class RenderEntry:
                if mat_type == 2:
                   sample_ok, wi = self.scene.materials.sample(ray_dir, hitRecord)
                   ray_org, ray_dir = hitRecord.p, wi.normalized()
-                  # coefficient *= attenuation  # 衰减
+                  _brdf = self.scene.brdf(hitRecord, ray_dir, ti.Vector([0.0, 0.0, 0.0]))
+                  coefficient *= _brdf  # 衰减
                else:
                    l_dir = ti.Vector([0.0, 0.0, 0.0])
                    l_indir = ti.Vector([0.0, 0.0, 0.0])
@@ -149,13 +150,12 @@ class RenderEntry:
         self.scene.commit()
 
     def run(self,out_fn=None):
-      t = time()
 
       self.init_field()
       for k in range(int(self.samples_per_pixel)):
           self.render_once()
       self.cal_film_val()
-      print(time() - t)
+
       if out_fn is None:
           out_fn=self.output
       # cv2.imwrite(out_fn, self.film_pixels.to_numpy()  )

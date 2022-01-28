@@ -1,0 +1,33 @@
+{
+  "scene":{
+      "film":{
+      "aspect_ratio":1,
+      "width":784
+    },
+    "camera":{
+      "type":"default",
+      "postion":[278.0, 353.0, -800.0],
+      "lookat":[278.0, 273.0, 0.0],
+      "up":[0.0, 1.0, 0.0],
+      "focus_dist":10.0,
+      "aperture":0.0,
+      "fov":40.0
+    },
+"env_light":{
+      "type":"ibl",
+      "intensity":4.0,
+      "color":[1.0, 1.0, 1.0],
+      "texture":"./data/je_gray_park_4k.hdr"
+    },
+    "models":[
+
+    ]
+  },
+  "render":{
+    "type":"path_tracing",
+    "spp":250,
+    "max_depth":10,
+    "img_writer":"ti",
+    "output":"out/cnl_spot_fall_water.png"
+  }
+}

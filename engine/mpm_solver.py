@@ -4,21 +4,27 @@ import time
 import numbers
 import math
 import multiprocessing as mp
-
+from .MarchingCubeGrid import MCGrid
 USE_IN_BLENDER = False
-
-ti.require_version(0, 8, 1)
+from engine.mesh_io import write_obj
+from engine.mesh_io import zoom_model
+# ti.require_version(0, 8, 1)
 
 # TODO: water needs Jp - fix this.
 
 
 @ti.data_oriented
 class MPMSolver:
-    material_water = 0
-    material_elastic = 1
-    material_snow = 2
-    material_sand = 3
-    material_stationary = 4
+    # material_water = 0
+    # material_elastic = 1
+    # material_snow = 2
+    # material_sand = 3
+    # material_stationary = 4
+    material_water = 1
+    material_elastic = 2
+    material_snow = 3
+    material_sand = 4
+    material_stationary = 5
     materials = {
         'WATER': material_water,
         'ELASTIC': material_elastic,
@@ -61,6 +67,7 @@ class MPMSolver:
             g2p2g_allowed_cfl=0.9,  # 0.0 for no CFL limit
             water_density=1.0,
             support_plasticity=True,  # Support snow and sand materials
+            use_marchingcube=True,  # use marchingcube
             use_adaptive_dt=False):
         self.dim = len(res)
         self.quant = quant
@@ -96,6 +103,8 @@ class MPMSolver:
         self.input_grid = 0
         self.all_time_max_velocity = 0
         self.support_plasticity = support_plasticity
+        self.use_marchingcube = use_marchingcube
+        self.had_water = False
         self.use_adaptive_dt = use_adaptive_dt
         self.F_bound = 4.0
 
@@ -164,16 +173,21 @@ class MPMSolver:
         self.grid = []
         self.grid_v = []
         self.grid_m = []
+        self.grid_m_water = []
         self.pid = []
+        #弹性物体网格数据
+        self.meshs_elastic = []
 
         for g in range(self.num_grids):
             # Grid node momentum/velocity
             grid_v = ti.Vector.field(self.dim, dtype=ti.f32)
             grid_m = ti.field(dtype=ti.f32)
+            grid_m_water = ti.field(dtype=ti.f32)
             pid = ti.field(ti.i32)
             self.grid_v.append(grid_v)
             # Grid node mass
             self.grid_m.append(grid_m)
+            self.grid_m_water.append(grid_m_water)
             grid = ti.root.pointer(indices, self.grid_size // grid_block_size)
             block = grid.pointer(indices,
                                  grid_block_size // self.leaf_block_size)
@@ -185,6 +199,8 @@ class MPMSolver:
                                                                  offset=offset)
 
             block_component(grid_m)
+            block_component(grid_m_water)
+            # block.dense(indices, self.leaf_block_size).place(grid_m_water,offset=offset)
             for d in range(self.dim):
                 block_component(grid_v.get_scalar_field(d))
 
@@ -291,8 +307,11 @@ class MPMSolver:
             self.grid = self.grid[0]
             self.grid_v = self.grid_v[0]
             self.grid_m = self.grid_m[0]
+            self.grid_m_water = self.grid_m_water[0]
             self.pid = self.pid[0]
-
+        if self.use_marchingcube:
+           self.mc_grid = MCGrid(self.dx, 4, 512, self)
+           self.mc_grid.setup_grid_cpu()
 
     def stencil_range(self):
         return ti.ndrange(*((3, ) * self.dim))
@@ -405,7 +424,8 @@ class MPMSolver:
                 h = ti.exp(10 * (1.0 - self.Jp[p]))
             if self.material[
                     p] == self.material_elastic:  # Jelly, make it softer
-                h = 0.3
+                # h = 0.3
+                h = 15.3
             mu, la = self.mu_0 * h, self.lambda_0 * h
             if self.material[p] == self.material_water:  # Liquid
                 mu = 0.0
@@ -504,7 +524,9 @@ class MPMSolver:
                     h = ti.exp(10 * (1.0 - self.Jp[p]))
             if self.material[
                     p] == self.material_elastic:  # jelly, make it softer
-                h = 22.7
+                # h = 1252.7
+                h = 1.0
+                # h = 0.3
             mu, la = self.mu_0 * h, self.lambda_0 * h
             if self.material[p] == self.material_water:  # liquid
                 mu = 0.0
@@ -557,8 +579,8 @@ class MPMSolver:
             mass = self.p_mass
             if self.material[p] == self.material_water:
                 mass *= self.water_density
-            elif  self.material[p] == self.material_elastic:
-                mass *= self.water_density*813
+            # elif  self.material[p] == self.material_elastic:
+            #     mass *= self.water_density
             affine = stress + mass * self.C[p]
 
             # Loop over 3x3 grid node neighborhood
@@ -570,7 +592,16 @@ class MPMSolver:
                 self.grid_v[base + offset] += weight * (mass * self.v[p] +
                                                         affine @ dpos)
                 self.grid_m[base + offset] += weight * mass
+                # self.grid_mat[base + offset,self.material[p]-1] +=1
+                if self.material[p]==self.material_water:
+                   self.grid_m_water[base + offset ]   += weight * mass
 
+    @ti.func
+    def grid_is_water(self, idx):
+        w_val=self.grid_m_water[idx ]
+        # return  w_val>0 and w_val>= self.grid_mat[idx,1] and w_val>=self.grid_mat[idx,2] and w_val>=self.grid_mat[idx,3] and w_val>=self.grid_mat[idx,4]
+        # return  w_val>0
+        return  w_val ==self.material_water
     @ti.kernel
     def grid_normalization_and_gravity(self, dt: ti.f32, grid_v: ti.template(),
                                        grid_m: ti.template()):
@@ -788,8 +819,6 @@ class MPMSolver:
             self.all_time_max_velocity = max(self.all_time_max_velocity,
                                              cur_frame_velocity)
 
-        # print()
-
         if print_stat:
             ti.print_kernel_profile_info()
             try:
@@ -861,7 +890,8 @@ class MPMSolver:
             self.source_bound[1][i] = cube_size[i]
 
         self.set_source_velocity(velocity=velocity)
-
+        if material==MPMSolver.material_water:
+            self.had_water=True
         self.seed(num_new_particles, material, color)
         self.n_particles[None] += num_new_particles
 
@@ -1017,37 +1047,17 @@ class MPMSolver:
                         self.seed_particle(p, x, material, color,
                                            self.source_velocity[None])
         self.mesh_vetx_start[self.mesh_obj_count[None]-1]=self.n_particles[None]
+        mesh_p_start=self.mesh_vetx_start[self.mesh_obj_count[None]-1]
 
         for i in range(num_vets):
-            x=ti.Vector([vertexs[i,0],vertexs[i,1],vertexs[i,2]])* (self.dx / self.voxelizer_super_sample
-                              ) + self.source_bound[0]
-            p = ti.atomic_add(self.n_particles[None], 1)
+            x=ti.Vector([vertexs[i,0],vertexs[i,1],vertexs[i,2]]) + self.source_bound[0]
+
+            p = mesh_p_start+i
+            ti.atomic_add(self.n_particles[None], 1)
+
             self.seed_particle(p, x, material, color,
                                self.source_velocity[None])
-    def add_mesh_0(self,
-                 triangles,
-                 material,
-                 color=0xFFFFFF,
-                 sample_density=None,
-                 velocity=None,
-                 translation=None):
-        assert self.dim == 3
-        if sample_density is None:
-            sample_density = 2**self.dim
 
-        self.set_source_velocity(velocity=velocity)
-
-        for i in range(self.dim):
-            if translation:
-                self.source_bound[0][i] = translation[i]
-            else:
-                self.source_bound[0][i] = 0
-
-        self.voxelizer.voxelize(triangles)
-        t = time.time()
-        self.seed_from_voxels(material, color, sample_density)
-        ti.sync()
-        # print('Voxelization time:', (time.time() - t) * 1000, 'ms')
 
     def add_mesh(self,
                  # triangles,
@@ -1056,6 +1066,7 @@ class MPMSolver:
                  color=0xFFFFFF,
                  sample_density=None,
                  velocity=None,
+                 fn_type="ply",
                  translation=None):
         assert self.dim == 3
         if sample_density is None:
@@ -1070,13 +1081,17 @@ class MPMSolver:
                 self.source_bound[0][i] = 0
 
         self.mesh_obj_count[None]+=1
-        self.voxelizer.voxelize(meshs)
+        self.voxelizer.voxelize(meshs,fn_type)
         t = time.time()
         vertexs=meshs["vertexs"]
         num_vers=len(meshs["vertexs"])
-
+        if material==MPMSolver.material_water:
+            self.had_water=True
         self.seed_from_voxels(material, color, sample_density,num_vers,vertexs)
         ti.sync()
+        meshs["fn_type"]=fn_type
+        self.meshs_elastic.append(meshs)
+        return len(self.meshs_elastic)
         # print('Voxelization time:', (time.time() - t) * 1000, 'ms')
 
     @ti.kernel
@@ -1206,3 +1221,79 @@ class MPMSolver:
         data = np.hstack([np_x, (np_color[:, None]).view(np.float32)])
         from engine.mesh_io import write_point_cloud
         write_point_cloud(fn, data)
+
+
+    @ti.kernel
+    def gen_vertex_normal(self,num_faces: ti.i32, num_vets: ti.i32,mesh_vets: ti.ext_arr(),mesh_faces: ti.ext_arr(),normals:ti.ext_arr()):
+
+        for i in range(num_vets):
+            vertexNormal = ti.Vector([0.0, 0.0, 0.0])
+
+            totalArea = 0.0
+
+            for j in range(num_faces):
+                idx1 = -1
+                idx2 = -1
+                vidx0 = mesh_faces[j, 0] - 1
+                vidx1 = mesh_faces[j, 1] - 1
+                vidx2 = mesh_faces[j, 2] - 1
+
+                if vidx0 == i:
+                    idx1 = vidx1
+                    idx2 = vidx2
+                if vidx1 == i:
+                    idx1 = vidx2
+                    idx2 = vidx0
+                if vidx2 == i:
+                    idx1 = vidx0
+                    idx2 = vidx1
+                if idx1 > -1 and idx2 > -1:
+
+                    # p1 = ti.Vector([mesh_vets[vidx0, 0], mesh_vets[vidx0, 1], mesh_vets[vidx0, 2]])
+                    # p2 = ti.Vector([mesh_vets[vidx1, 0], mesh_vets[vidx1, 1], mesh_vets[vidx1, 2]])
+                    # p3 = ti.Vector([mesh_vets[vidx2, 0], mesh_vets[vidx2, 1], mesh_vets[vidx2, 2]])
+                    # e1 = p2 - p1
+                    # e2 = p3 - p1
+                    p1=ti.Vector([mesh_vets[i,0],mesh_vets[i,1],mesh_vets[i,2] ])
+                    e1 = ti.Vector([mesh_vets[idx1,0],mesh_vets[idx1,1],mesh_vets[idx1,2] ]) - p1
+                    e2 = ti.Vector([mesh_vets[idx2,0],mesh_vets[idx2,1],mesh_vets[idx2,2] ]) - p1
+                    # angle = ti.acos(e1.dot(e2))
+
+                    area = e1.cross(e2).norm() * 0.5
+                    vertexNormal += e1.cross(e2).normalized() * area
+                    # if i == 0:
+                    #     print("vertexNormal", vertexNormal)
+                    totalArea += area
+
+            if totalArea > 0.0:
+                vertexNormal = (vertexNormal / totalArea).normalized()
+                normals[i,0] = vertexNormal[0]
+                normals[i,1] = vertexNormal[1]
+                normals[i,2] = vertexNormal[2]
+
+    def export_mesh_obj(self,mesh_id,filename,scale=1, offset=None, zoom=None):
+        mesh=self.meshs_elastic[mesh_id-1]
+        num_vets= mesh["vertexs"].shape[0]
+        particles=self.particle_info()
+        mesh_vetx_idx = particles['mesh_vetx_idx']
+        mesh_vetx_start = mesh_vetx_idx[mesh_id-1]
+        np_x = particles['position']
+        pointers=np_x[mesh_vetx_start:(mesh_vetx_start+num_vets),:]
+        if offset is not None:
+            pointers+=offset
+        pointers*=scale
+        if zoom is not None:
+            pointers=zoom_model(pointers,zoom["scale"],zoom["div"])
+        faces=mesh["faces"]
+        fn_type=mesh["fn_type"]
+        if fn_type=='ply':
+            faces=faces+1
+        normals=np.zeros((num_vets,3) )
+        _texcoords=None
+        if "texcoords" in mesh:
+            _texcoords=np.asarray(mesh["texcoords"])
+        self.gen_vertex_normal( faces.shape[0],num_vets,pointers, faces ,normals)
+        write_obj(  filename, pointers.tolist(), faces, normals,_texcoords )
+    def export_mc_mesh(self ,filename,scale=1, offset=None):
+        if self.had_water and self.use_marchingcube:
+           self.mc_grid.export_surface(filename,scale,offset)

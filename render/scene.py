@@ -9,6 +9,7 @@ from render.Texture2D  import *
 from render.EnvLight  import *
 import random
 import numpy as np
+from time import time
 from render.bvh import  BVHS
 
 EPSILON=0.0001
@@ -119,6 +120,17 @@ class Scene:
             self.bvh_root = self.bvh.add(self.objects)
             self.meshs_field.update_bykey(obj )
             self.bvh.build()
+    def update_mesh_list(self,mesh_list ):
+        self.bvh.clear()
+        for i in range(len(mesh_list)):
+           obj = mesh_list[i]
+           objid = self.key_idx[obj.key]
+           obj.id = objid
+           self.objects[objid] = obj
+        self.bvh_root = self.bvh.add(self.objects)
+        self.meshs_field.update_mesh_list(mesh_list)
+        self.bvh.build()
+
 
     @staticmethod
     def GenMeshObj(json_data):
@@ -156,7 +168,7 @@ class Scene:
             ior = 1.5
             if "ior" in mate_data:
                 ior = mate_data["ior"]
-            mate = Dielectric(ior)
+            mate = Dielectric(ior,color)
         elif mate_type == 'Metal':
             roughness = 0.0
 
@@ -176,7 +188,12 @@ class Scene:
         env_light=None
         if "env_light" in json_data:
             env_light_data = json_data["env_light"]
-            env_light = EnvLight(env_light_data["intensity"], env_light_data["color"] , env_light_data["texture"])
+            t1=time()
+            texture_fn=None
+            if "texture" in env_light_data:
+                texture_fn=env_light_data["texture"]
+            env_light = EnvLight(env_light_data["intensity"], env_light_data["color"] , texture_fn)
+            print("Create EnvLight cost:",time()-t1)
         else:
             env_light = EnvLight()
         scene.set_env_light(env_light)

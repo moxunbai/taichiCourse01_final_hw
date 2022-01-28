@@ -208,6 +208,7 @@ class MeshTriangle:
     def center(self):
         return self.box_center
 
+MAX_TRIANGLES=524288
 @ti.data_oriented
 class MeshTriangles:
     def __init__(self,meshs,bvh):
@@ -231,6 +232,7 @@ class MeshTriangles:
         _txt_data=None
         self.bvh=bvh
         self.key_idx={}
+        self.idx_cursor=0
         for i in range(self.num_mesh):
             mesh=meshs[i]
             if mesh.key is not None:
@@ -267,9 +269,9 @@ class MeshTriangles:
                 if normal_type<0:
                     _mesh_nor_type.append(triangle.normal_type)
                     normal_type=triangle.normal_type
-
+        self.idx_cursor = num_tris
         self.triangles = ti.Struct.field(
-            {"vertices": ti.types.matrix(n=3, m=3, dtype=ti.f32), "texts": ti.types.matrix(n=2, m=3, dtype=ti.f32),
+            {"vertices": ti.types.matrix(n=3, m=3, dtype=ti.f32), "texts": ti.types.matrix( m=2,n=3, dtype=ti.f32),
              "normal": ti.types.matrix(n=3, m=3, dtype=ti.f32) , "area": ti.f32})
 
         self.meshs = ti.Struct.field(
@@ -278,7 +280,9 @@ class MeshTriangles:
                "normal_type": ti.i32,"area": ti.f32})
 
         self.texture_data=ti.Vector.field(3, dtype=ti.i32)
-        ti.root.dense(ti.i, num_tris).place(self.triangles)
+        # ti.root.dense(ti.i, num_tris).place(self.triangles)
+        # ti.root.dense(ti.i, MAX_TRIANGLES).place(self.triangles)
+        ti.root.pointer(ti.i, MAX_TRIANGLES//1024).pointer(ti.i, 1024//128).pointer(ti.i, 128//16).pointer(ti.i, 8).place(self.triangles)
 
         ti.root.dense(ti.i, self.num_mesh).place(self.meshs )
         if _txt_data is not None:
@@ -287,10 +291,11 @@ class MeshTriangles:
         else:
           ti.root.dense(ti.i,1).place(self.texture_data)
 
-        self.triangles.vertices.from_numpy(np.asarray(_tri_vets))
-        self.triangles.texts.from_numpy(np.asarray(_tri_texcoords))
-        self.triangles.normal.from_numpy(np.asarray(_tri_normals))
-        self.triangles.area.from_numpy(np.asarray(_tri_area))
+        self.set_triangls(num_tris,np.asarray(_tri_vets),np.asarray(_tri_texcoords),np.asarray(_tri_normals),np.asarray(_tri_area))
+        # self.triangles.vertices.from_numpy(np.asarray(_tri_vets))
+        # self.triangles.texts.from_numpy(np.asarray(_tri_texcoords))
+        # self.triangles.normal.from_numpy(np.asarray(_tri_normals))
+        # self.triangles.area.from_numpy(np.asarray(_tri_area))
 
         self.meshs.tris_start.from_numpy(np.asarray(self._tris_start))
         self.meshs.tris_n.from_numpy(np.asarray(self._tris_n))
@@ -304,19 +309,44 @@ class MeshTriangles:
         if _txt_data is not None:
           del _txt_data
 
+    @ti.kernel
+    def set_triangls(self,m:ti.i32,tri_vets:ti.ext_arr(),texcoords:ti.ext_arr(),normals:ti.ext_arr(),areas:ti.ext_arr()):
+        for i in range(m):
+            tri_vex=ti.Matrix.zero(ti.f32,3,3)
+            tri_nor=ti.Matrix.zero(ti.f32,3,3)
+            tri_tex=ti.Matrix.zero(ti.f32,3,2)
+            for j in ti.static(range(3)):
+               for k in ti.static(range(3)):
+                tri_vex[j,k]=tri_vets[i,j,k]
+                tri_nor[j,k]=normals[i,j,k]
+               for k in ti.static(range(2)):
+                   tri_tex[j,k]=texcoords[i,j,k]
+            self.triangles[i].vertices=tri_vex
+            self.triangles[i].texts =tri_tex
+            self.triangles[i].normal=tri_nor
+            self.triangles[i].area= areas[i]
     def update_bykey(self, mesh ):
         if mesh.key is not None:
             idx=self.key_idx[mesh.key]
             self.update(mesh,idx)
+    def update_mesh_list(self, meshs):
+        for mesh in meshs:
+            idx=self.key_idx[mesh.key]
+            self.update(mesh,idx)
+            if idx<len(self._tris_start)-1:
+               tris_start = self._tris_start[idx]
+               end_idx=tris_start+len(mesh.triangles)
+               if  end_idx>self._tris_start[idx+1]:
+                   self._tris_start[idx + 1]=end_idx
     def update(self,mesh, idx ):
         self._meshs[idx]=mesh
         tris_start = self._tris_start[idx]
-        tris_n = self._tris_n[idx]
+        # tris_n = self._tris_n[idx]
         for i in range(self.num_mesh):
             bvh_root=self.bvh.add(self._meshs[i].triangles)
             self.meshs[i].bvh_root=bvh_root
 
-
+        tris_n=len(mesh.triangles)
         for i in range(tris_start,tris_start+tris_n,1):
             triangle = mesh.triangles[i-tris_start]
 
@@ -343,9 +373,9 @@ class MeshTriangles:
         tx0, tx1, tx2 = getVectors(_texs)
         v0, v1, v2 = getVectors(_vertices)
         alpha, beta, gamma = Triangle.computeBarycentric2D(p.x, p.y, p.z, v0, v1, v2)
-        tx = clamp(Triangle.interpolate(alpha, beta, gamma, tx0, tx1, tx2, 1.0), 0, 1)
+        tx = clamp(Triangle.interpolate(alpha, beta, gamma, tx0, tx1, tx2, 1.0), 0.0, 1.0)
         twith = mesh.tex_wh[0]
         theight = mesh.tex_wh[1]
-        c_idx = ti.cast((1 - tx.y) * twith, dtype=ti.i32) *twith  + ti.cast((tx.x) * theight, dtype=ti.i32) - 1 + \
+        c_idx = ti.cast((1.0 - tx.y) * twith, dtype=ti.i32) *twith  + ti.cast((tx.x) * theight, dtype=ti.i32) - 1 + \
                 mesh.tex_idx
         return self.texture_data[c_idx]

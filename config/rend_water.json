@@ -1,0 +1,60 @@
+{
+  "scene":{
+    "film":{
+      "aspect_ratio":2,
+      "width":1400
+    },
+    "camera":{
+      "type":"default",
+      "postion":[278.0, 373.0, -600.0],
+      "lookat":[278.0, 173.0, 0.0],
+      "up":[0.0, 1.0, 0.0],
+      "focus_dist":10.0,
+      "aperture":0.0,
+      "fov":90.0
+    },
+    "env_light":{
+      "type":"ibl",
+      "intensity":4.0,
+      "color":[1.0, 1.0, 1.0],
+      "texture":"./data/je_gray_park_4k.hdr"
+    },
+    "models":[
+      {
+        "type":"MeshTriangle",
+        "filename":"./out/sim_2022-01-23_11-19-56/00000.obj",
+        "texture":"./data/models/spot/spot_texture.png",
+        "material":{
+          "type":"Lambert",
+          "color":[1.0,1.0,1.0]
+        },
+        "transformation":{
+          "translation":[200, -100, 0],
+          "scale":6,
+          "routeY":0
+        }
+      },
+      {
+        "type":"MeshTriangle",
+        "filename":"./out/sim_2022-01-23_11-19-56/mc_00000.obj",
+        "material":{
+          "type":"Dielectric",
+          "ior":1.5,
+          "color":[0.580392,0.705882,0.76862745]
+        },
+        "transformation":{
+          "translation":[200, -100, 0],
+          "scale":6,
+          "routeY":0
+        }
+      }
+    ]
+  },
+  "render":{
+    "type":"path_tracing",
+    "img_writer":"ti",
+    "spp":200,
+    "max_depth":10,
+    "output":"out/spot_fall_w_env.jpg"
+  }
+}

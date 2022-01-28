@@ -75,6 +75,36 @@ def rgbe2float(rgbe):
     res[:, :, 2][p] = rgbe[:, :, 2][p] * m
     return res
 
+@ti.kernel
+def calHdrVal(width:ti.i32,height:ti.i32,data:ti.ext_arr(),img:ti.ext_arr()):
+    dp = 0
+    for h in range(height):
+        if data[dp] != 2 or data[dp + 1] != 2:
+            print('this file is not run length encoded')
+            print(data[dp:dp + 4])
+        elif  data[dp + 2] * 256 + data[dp + 3] != width:
+            print('wrong scanline width')
+        else:
+          dp += 4
+          for i in range(4):
+              ptr = 0
+              while (ptr < width):
+                  if data[dp] > 128:
+                      count = data[dp] - 128
+                      if count == 0 or count > width - ptr:
+                          print('bad scanline data')
+                      img[h, ptr:ptr + count, i] = data[dp + 1]
+                      ptr += count
+                      dp += 2
+                  else:
+                      count = data[dp]
+                      dp += 1
+                      if count == 0 or count > width - ptr:
+                          print('bad scanline data')
+                      # img[h, ptr:ptr + count, i] = data[dp: dp + count]
+                      img[h, ptr:ptr + count, i] = data[dp: dp + count]
+                      ptr += count
+                      dp += count
 
 def readHdr(fileName):
     fileinfo = {}
@@ -165,7 +195,7 @@ class EnvLight:
            img_data = readHdr(fn)
            # img_data1  = Texture2D(fn,reshape=False )
            # img_data = img_data1.data
-
+           #
            # img_data=img_data.reshape(img_data.shape[1],img_data.shape[0],img_data.shape[2])
            # print(img_data.shape)
 
@@ -205,7 +235,10 @@ class EnvLight:
           uv=get_sphere_coordinate(dir.normalized())
           rst =clamp(self.get_radiance(uv), 0.0, 0.9999)
         else:
-          rst =self.intensity[None]*self.color
+          # rst =self.intensity[None]*self.color
+          t=0.5 * (dir.y + 1.0)
+          rst=(1.0 - t) * ti.Vector([0.0,0.0,0.0]) + t *self.color
+          rst *=self.intensity[None]
         return rst
 
     @ti.func

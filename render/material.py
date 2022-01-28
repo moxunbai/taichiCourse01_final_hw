@@ -114,6 +114,7 @@ class Metal(_material):
     def sample(in_direction, p, n, roughness ):
         out_direction = reflect(in_direction.normalized(),
                                 n) + roughness * random_in_unit_sphere()
+
         return  False,out_direction
 
     @staticmethod
@@ -129,8 +130,8 @@ class Metal(_material):
         return  color
 
 class Dielectric(_material):
-    def __init__(self, ior):
-        self.color = Color(1.0, 1.0, 1.0)
+    def __init__(self, ior,color):
+        self.color = color
         self.index = 2
         self.roughness = 0.0
         self.ior = ior
@@ -156,7 +157,7 @@ class Dielectric(_material):
 
     @staticmethod
     @ti.func
-    def sample(in_direction, p, n ,ior, front_facing):
+    def sample(in_direction, p, n ,ior,color, front_facing):
         refraction_ratio = 1.0 / ior if front_facing else ior
         unit_dir = in_direction.normalized()
         cos_theta = min(-unit_dir.dot(n), 1.0)
@@ -169,7 +170,6 @@ class Dielectric(_material):
             out_direction = reflect(unit_dir, n)
         else:
             out_direction = refract(unit_dir, n, refraction_ratio)
-
 
         return True, out_direction
 
@@ -184,8 +184,7 @@ class Dielectric(_material):
     @staticmethod
     @ti.func
     def brdf(color,in_dir  ,out_dir, n):
-
-        return  Color(1.0, 1.0, 1.0)
+        return  color
 
 
 class Lambert_light(_material):
@@ -290,7 +289,7 @@ class Materials:
             result_ok,out_direction = Metal.sample(wi,hitRecord.p, hitRecord.normal,roughness )
         elif mat_index == 2:
 
-            result_ok,out_direction = Dielectric.sample(wi,hitRecord.p, hitRecord.normal,ior,hitRecord.front_face )
+            result_ok,out_direction = Dielectric.sample(wi,hitRecord.p, hitRecord.normal,ior,color,hitRecord.front_face )
 
         return result_ok,out_direction
 

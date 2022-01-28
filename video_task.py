@@ -33,7 +33,7 @@ class ImgDoneListener():
         img_array = []
 
         for i in range(self.max_num):
-            filename = (img_dir+"/"+img_fn).format(i)
+            filename = (img_dir+ img_fn).format(i)
             img = cv2.imread(filename)
             if img is None:
                 print(filename + " is error!")
@@ -66,8 +66,13 @@ class ImgDoneListener():
 
         self.ch.start_consuming()
 if __name__ == '__main__':
+    conf_fn = None
+    if len(sys.argv) == 1:
+        raise Exception('lost config file! ')
+    else:
+        conf_fn = sys.argv[1]
     base_config = None
-    with open("./config/base.json", 'r', encoding='utf8')as fp:
+    with open(conf_fn, 'r', encoding='utf8')as fp:
         base_config = json.load(fp)
     mq_conf=base_config["mq"]
     io_conf=base_config["io"]
@@ -81,5 +86,5 @@ if __name__ == '__main__':
     channel.queue_declare(queue=ren_succ_counter_que)
 
     lis =ImgDoneListener(channel,ren_succ_counter_que,sim_iter_num,base_config)
-    lis.start()
-    # lis.make_vedio()
+    # lis.start()
+    lis.make_vedio()

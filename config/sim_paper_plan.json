@@ -1,0 +1,46 @@
+{
+  "mpm_solver":{
+    "res":[128, 128, 128],
+    "size":1,
+    "unbounded":0,
+    "water_density":1.0,
+    "dt_scale":1
+  },
+  "surface_collider":{
+    "point":[0, 0, 0],
+    "normal":[0, 1, 0],
+    "surface":"separate",
+    "friction":0.5
+  },
+  "gravity":[0, -25, 0],
+  "meshs":[
+    {
+      "filename":"./data/models/paper_plan/paper_plane.ply",
+      "scale":0.004,
+      "offset":[0.3, 0.72, 0.5],
+      "material":"elastic",
+      "color":111,
+      "sample_density":4,
+      "velocity":[-20, 3.5265, 0],
+      "translation":[0.75,0.2,0.1]
+    }
+  ],
+  "cubes":[
+    {
+      "lower_corner":[0.0, 0, 0.0],
+      "cube_size":[1.0, 1.0, 1.0],
+      "material":"water",
+      "sample_density":4,
+      "velocity":[0.0, 0.0,0.0]
+    }
+  ],
+  "output":[
+    {
+      "type":"mesh",
+      "tem_name":"{frame:05d}.obj",
+      "scale":256,
+      "offset":[  -1.25, -0.8, -0.2]
+    }
+  ],
+  "iter_num":300
+}
