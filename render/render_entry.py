@@ -18,7 +18,7 @@ class RenderEntry:
 
     def __init__(self,conf_fn):
       # switch to cpu if needed
-      ti.init(arch=ti.gpu, random_seed=int(time()), advanced_optimization=False)
+      ti.init(arch=ti.gpu,default_fp=ti.f32, random_seed=int(time()), advanced_optimization=False)
 
       json_data=None
       with open(conf_fn, 'r', encoding='utf8')as fp:
@@ -62,9 +62,9 @@ class RenderEntry:
     @ti.func
     def ray_color(self,ray_org, ray_dir):
 
-      col = ti.Vector([0.0, 0.0, 0.0])
+      col = ti.Vector([0.0, 0.0, 0.0], dt=ti.f32)
 
-      coefficient = ti.Vector([1.0, 1.0, 1.0])
+      coefficient = ti.Vector([1.0, 1.0, 1.0], dt=ti.f32)
 
       for i in range(self.max_depth):
 
@@ -74,7 +74,7 @@ class RenderEntry:
               col=self.scene.env_light.get_radiance_bydir(ray_dir)*coefficient
             # print(col)
             else:
-                col = ti.Vector([0.0, 0.0, 0.0])
+                col = ti.Vector([0.0, 0.0, 0.0], dt=ti.f32)
             break
          else:
 
@@ -89,11 +89,11 @@ class RenderEntry:
                if mat_type == 2:
                   sample_ok, wi = self.scene.materials.sample(ray_dir, hitRecord)
                   ray_org, ray_dir = hitRecord.p, wi.normalized()
-                  _brdf = self.scene.brdf(hitRecord, ray_dir, ti.Vector([0.0, 0.0, 0.0]))
+                  _brdf = self.scene.brdf(hitRecord, ray_dir, ti.Vector([0.0, 0.0, 0.0], dt=ti.f32))
                   coefficient *= _brdf  # 衰减
                else:
-                   l_dir = ti.Vector([0.0, 0.0, 0.0])
-                   l_indir = ti.Vector([0.0, 0.0, 0.0])
+                   l_dir = ti.Vector([0.0, 0.0, 0.0], dt=ti.f32)
+                   l_indir = ti.Vector([0.0, 0.0, 0.0], dt=ti.f32)
                    coords, normal, pdf_light, emitted,wi = self.scene.sample_light(ray_dir, hitRecord)
                    if pdf_light>0.0:
                       l_dir =emitted*self.scene.brdf(hitRecord ,ray_dir,wi )

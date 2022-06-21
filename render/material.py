@@ -212,16 +212,22 @@ class Materials:
         self.colors = ti.Vector.field(3, dtype=ti.f32)
         self.mat_index = ti.field(ti.u32)
         self.ior = ti.field(ti.f32)
-        ti.root.dense(ti.i, n).place(self.roughness, self.colors,
-                                     self.mat_index, self.ior)
-        for i in range(n):
-            self.set(i,objs[i].material)
+        self.n=n
+        self.objs=objs
 
-    def set(self, i, material):
-        self.colors[i] = material.color
-        self.mat_index[i] = material.index
-        self.roughness[i] = material.roughness
-        self.ior[i] = material.ior
+
+    def setup_data_gpu(self):
+        ti.root.dense(ti.i, self.n).place(self.roughness, self.colors,
+                                     self.mat_index, self.ior)
+
+    def setup_data_cpu(self):
+        for i in range(self.n):
+            material = self.objs[i].material
+            self.colors[i] = material.color
+            self.mat_index[i] = material.index
+            self.roughness[i] = material.roughness
+            self.ior[i] = material.ior
+
 
     @ti.func
     def get(self, i ):

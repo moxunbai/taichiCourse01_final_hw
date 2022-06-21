@@ -48,7 +48,7 @@ class Renderer:
         self.particle_x = ti.Vector.field(3, dtype=ti.f32)
         if self.enable_motion_blur:
             self.particle_v = ti.Vector.field(3, dtype=ti.f32)
-        self.particle_color = ti.Vector.field(3, dtype=ti.u8)
+        self.particle_color = ti.Vector.field(3, dtype=ti.f32)
         self.pid = ti.field(ti.i32)
         self.num_particles = ti.field(ti.i32, shape=())
 

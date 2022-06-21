@@ -412,7 +412,7 @@ class MCGrid:
 
     @ti.func
     def get_posV(self, indexV):
-        return self.min_boundary[0] +  ti.cast(indexV, ti.f32) * self.gridR 
+        return self.min_boundary[0] +  ti.cast(indexV, ti.f32) * self.gridR
 
     @ti.func
     def get_pos(self, index):

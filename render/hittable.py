@@ -47,10 +47,15 @@ class Spheres:
             center=vec3f, radius=ti.f32
         )
         nSph = len(spheres)
+        self.n = nSph
+        self.datas=spheres
         self.spheres = sphe_type.field(shape=(nSph if nSph>0 else 1))
-        for i in range(nSph):
-            self.spheres[i].center = spheres[i].center
-            self.spheres[i].radius = spheres[i].radius
+
+
+    def setup_data_cpu(self):
+        for i in range(self.n):
+            self.spheres[i].center = self.datas[i].center
+            self.spheres[i].radius = self.datas[i].radius
     @ti.func
     def get(self, i ):
         return self.spheres[i]

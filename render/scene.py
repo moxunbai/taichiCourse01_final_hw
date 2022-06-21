@@ -15,9 +15,9 @@ from render.bvh import  BVHS
 EPSILON=0.0001
 @ti.func
 def getVectors(matrix_val):
-    v0 = ti.Vector([0.0,0.0,0.0])
-    v1 = ti.Vector([0.0,0.0,0.0])
-    v2 = ti.Vector([0.0,0.0,0.0])
+    v0 = ti.Vector([0.0,0.0,0.0],dt=ti.f32)
+    v1 = ti.Vector([0.0,0.0,0.0],dt=ti.f32)
+    v2 = ti.Vector([0.0,0.0,0.0],dt=ti.f32)
 
     for i in ti.static(range(matrix_val.m)):
         v0[i]=matrix_val[0,i]
@@ -80,6 +80,8 @@ class Scene:
         self.n = len(self.objects)
 
         self.bvh = BVHS()
+        self.materials = Materials(self.n, self.objects)
+
         self.bvh_root=self.bvh.add(self.objects)
         if len(self.meshs)>0:
             self.meshs_field=MeshTriangles(self.meshs,self.bvh)
@@ -88,16 +90,28 @@ class Scene:
         else:
             self.spheres_field = Spheres([])
         self.objs_field = ti.Struct.field({"geo_type": ti.i32, "li_type": ti.i32, "local_idx": ti.i32, "id": ti.i32})
-        self.materials = Materials(self.n,self.objects)
+
 
         self.light_num = ti.field(ti.i32,shape=())
+
         ti.root.dense(ti.i, self.n).place(self.objs_field)
+        if len(self.meshs)>0:
+            self.meshs_field.setup_data_gpu()
+        self.materials.setup_data_gpu()
+
+
         self.light_num[None] = self._light_num
 
         self.objs_field.geo_type.from_numpy(np.asarray(self.geo_types))
         self.objs_field.li_type.from_numpy(np.asarray(self.objlights))
         self.objs_field.local_idx.from_numpy(np.asarray(self.local_idx))
         self.objs_field.id.from_numpy(np.asarray(self.ids))
+
+        if len(self.meshs)>0:
+            self.meshs_field.setup_data_cpu()
+        if len(self.spheres)>0:
+            self.spheres_field.setup_data_cpu()
+        self.materials.setup_data_cpu()
 
         self.bvh.build()
 
