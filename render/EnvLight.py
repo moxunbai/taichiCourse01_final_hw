@@ -76,7 +76,7 @@ def rgbe2float(rgbe):
     return res
 
 @ti.kernel
-def calHdrVal(width:ti.i32,height:ti.i32,data:ti.ext_arr(),img:ti.ext_arr()):
+def calHdrVal(width:ti.i32,height:ti.i32,data:ti.types.ndarray(),img:ti.types.ndarray()):
     dp = 0
     for h in range(height):
         if data[dp] != 2 or data[dp + 1] != 2:
@@ -225,7 +225,7 @@ class EnvLight:
     def get_radiance(self,uv):
         return self.intensity[None]*self.color*self.sample_nearest(uv)
     @ti.kernel
-    def init_data(self,tex_data: ti.ext_arr()):
+    def init_data(self,tex_data: ti.types.ndarray()):
         for i,j in self.texture_data:
             self.texture_data[i,j]=[tex_data[i,j,0],tex_data[i,j,1],tex_data[i,j,2]]
     @ti.func

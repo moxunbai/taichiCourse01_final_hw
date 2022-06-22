@@ -957,7 +957,7 @@ class MPMSolver:
             self,
             offset_x: ti.f32,
             offset_y: ti.f32,
-            texture: ti.ext_arr(),
+            texture: ti.types.ndarray(),
             new_material: ti.i32,
             color: ti.i32,
     ):
@@ -1028,7 +1028,7 @@ class MPMSolver:
 
     @ti.kernel
     def seed_from_voxels(self, material: ti.i32, color: ti.i32,
-                         sample_density: ti.i32,num_vets: ti.i32,vertexs: ti.ext_arr()):
+                         sample_density: ti.i32,num_vets: ti.i32,vertexs: ti.types.ndarray()):
         for i, j, k in self.voxelizer.voxels:
             inside = 1
             for d in ti.static(range(3)):
@@ -1096,7 +1096,7 @@ class MPMSolver:
 
     @ti.kernel
     def seed_from_external_array(self, num_particles: ti.i32,
-                                 pos: ti.ext_arr(), new_material: ti.i32,
+                                 pos: ti.types.ndarray(), new_material: ti.i32,
                                  color: ti.i32):
 
         for i in range(num_particles):
@@ -1123,10 +1123,10 @@ class MPMSolver:
     def recover_from_external_array(
             self,
             num_particles: ti.i32,
-            pos: ti.ext_arr(),
-            vel: ti.ext_arr(),
-            material: ti.ext_arr(),
-            color: ti.ext_arr(),
+            pos: ti.types.ndarray(),
+            vel: ti.types.ndarray(),
+            material: ti.types.ndarray(),
+            color: ti.types.ndarray(),
     ):
         for i in range(num_particles):
             x = ti.Vector.zero(ti.f32, n=self.dim)
@@ -1160,25 +1160,25 @@ class MPMSolver:
                                              color[begin:end])
 
     @ti.kernel
-    def copy_dynamic_nd(self, np_x: ti.ext_arr(), input_x: ti.template()):
+    def copy_dynamic_nd(self, np_x: ti.types.ndarray(), input_x: ti.template()):
         for i in self.x:
             for j in ti.static(range(self.dim)):
                 np_x[i, j] = input_x[i][j]
 
     @ti.kernel
-    def copy_dynamic(self, np_x: ti.ext_arr(), input_x: ti.template()):
+    def copy_dynamic(self, np_x: ti.types.ndarray(), input_x: ti.template()):
         for i in self.x:
             np_x[i] = input_x[i]
 
     @ti.kernel
-    def copy_ranged(self, np_x: ti.ext_arr(), input_x: ti.template(),
+    def copy_ranged(self, np_x: ti.types.ndarray(), input_x: ti.template(),
                     begin: ti.i32, end: ti.i32):
         ti.no_activate(self.particle)
         for i in range(begin, end):
             np_x[i - begin] = input_x[i]
 
     @ti.kernel
-    def copy_ranged_nd(self, np_x: ti.ext_arr(), input_x: ti.template(),
+    def copy_ranged_nd(self, np_x: ti.types.ndarray(), input_x: ti.template(),
                        begin: ti.i32, end: ti.i32):
         ti.no_activate(self.particle)
         for i in range(begin, end):
@@ -1224,7 +1224,7 @@ class MPMSolver:
 
 
     @ti.kernel
-    def gen_vertex_normal(self,num_faces: ti.i32, num_vets: ti.i32,mesh_vets: ti.ext_arr(),mesh_faces: ti.ext_arr(),normals:ti.ext_arr()):
+    def gen_vertex_normal(self,num_faces: ti.i32, num_vets: ti.i32,mesh_vets: ti.types.ndarray(),mesh_faces: ti.types.ndarray(),normals:ti.types.ndarray()):
 
         for i in range(num_vets):
             vertexNormal = ti.Vector([0.0, 0.0, 0.0])

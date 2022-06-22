@@ -1,0 +1,5 @@
+taichi
+numpy
+pillow
+pika
+opencv-python

@@ -115,7 +115,7 @@ mpm.set_gravity((0, -25, 0))
 
 @ti.kernel
 def gen_vertex_normal(num_faces: ti.i32,num_vets: ti.i32,
-                           mesh_vets: ti.ext_arr() ):
+                           mesh_vets: ti.types.ndarray() ):
 
     for i in range(num_vets):
         vertexNormal = ti.Vector([0.0, 0.0, 0.0])

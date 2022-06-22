@@ -258,7 +258,7 @@ class MeshTriangles:
                 if self._txt_data is None:
                     self._txt_data=mesh.texture.data
                 else:
-                    self._txt_data=np.concatenate(self._txt_data,mesh.texture.data)
+                    self._txt_data=np.concatenate(self._txt_data,mesh.texture.data, dtype=np.float32)
             for j in range(tri_n):
                 triangle=mesh.triangles[j]
                 self._tri_vets.append(triangle.vertices)
@@ -275,11 +275,11 @@ class MeshTriangles:
              "normal": ti.types.matrix(n=3, m=3, dtype=ti.f32) , "area": ti.f32})
 
         self.meshs = ti.Struct.field(
-            {"tris_start": ti.i64,"tris_n": ti.i64, "tex_idx": ti.i64, "tex_wh": ti.types.vector(2, ti.i64),
-             "has_tex": ti.i64, "id": ti.i64,"bvh_root": ti.i64,
-               "normal_type": ti.i64,"area": ti.f32})
+            {"tris_start": ti.i32,"tris_n": ti.i32, "tex_idx": ti.i32, "tex_wh": ti.types.vector(2, ti.i32),
+             "has_tex": ti.i32, "id": ti.i32,"bvh_root": ti.i32,
+               "normal_type": ti.i32,"area": ti.f32})
 
-        self.texture_data=ti.Vector.field(3, dtype=ti.i64)
+        self.texture_data=ti.Vector.field(3, dtype=ti.i32)
         # ti.root.dense(ti.i, num_tris).place(self.triangles)
         # ti.root.dense(ti.i, MAX_TRIANGLES).place(self.triangles)
 
@@ -304,18 +304,18 @@ class MeshTriangles:
 
         if self._txt_data is not None:
             self.texture_data.from_numpy(self._txt_data)
-        self.set_triangls(self.num_tris,np.asarray(self._tri_vets),np.asarray(self._tri_texcoords),np.asarray(self._tri_normals),np.asarray(self._tri_area))
+        self.set_triangls(self.num_tris,np.asarray(self._tri_vets, dtype=np.float32),np.asarray(self._tri_texcoords, dtype=np.float32),np.asarray(self._tri_normals, dtype=np.float32),np.asarray(self._tri_area, dtype=np.float32))
 
         self.meshs.tris_start.from_numpy(np.asarray(self._tris_start))
         self.meshs.tris_n.from_numpy(np.asarray(self._tris_n))
-        self.meshs.area.from_numpy(np.asarray(self._mesh_area))
+        self.meshs.area.from_numpy(np.asarray(self._mesh_area, dtype=np.float32))
         self.meshs.normal_type.from_numpy(np.asarray(self._mesh_nor_type))
         self.meshs.bvh_root.from_numpy(np.asarray(self._bvh_roots))
         self.meshs.tex_wh.from_numpy(np.asarray(self._tex_wh))
         self.meshs.tex_idx.from_numpy(np.asarray(self._tex_idx))
         self.meshs.has_tex.from_numpy(np.asarray(self._mesh_has_tex))
     @ti.kernel
-    def set_triangls(self,m:ti.i64,tri_vets:ti.ext_arr(),texcoords:ti.ext_arr(),normals:ti.ext_arr(),areas:ti.ext_arr()):
+    def set_triangls(self,m:ti.i32,tri_vets:ti.types.ndarray(),texcoords:ti.types.ndarray(),normals:ti.types.ndarray(),areas:ti.types.ndarray()):
         for i in range(m):
             tri_vex=ti.Matrix.zero(ti.f32,3,3)
             tri_nor=ti.Matrix.zero(ti.f32,3,3)
@@ -381,6 +381,6 @@ class MeshTriangles:
         tx = clamp(Triangle.interpolate(alpha, beta, gamma, tx0, tx1, tx2, 1.0), 0.0, 1.0)
         twith = mesh.tex_wh[0]
         theight = mesh.tex_wh[1]
-        c_idx = ti.cast((1.0 - tx.y) * twith, dtype=ti.i64) *twith  + ti.cast((tx.x) * theight, dtype=ti.i64) - 1 + \
+        c_idx = ti.cast((1.0 - tx.y) * twith, dtype=ti.i32) *twith  + ti.cast((tx.x) * theight, dtype=ti.i32) - 1 + \
                 mesh.tex_idx
         return self.texture_data[c_idx]

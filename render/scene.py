@@ -354,7 +354,7 @@ class Scene:
         root = -1.0
         p = Point([0.0, 0.0, 0.0])
         n = Point([0.0, 0.0, 0.0])
-        t = None
+        t = 0.0
         front_facing = True
         v0, v1, v2 = getVectors(_vx)
         e1=v1 - v0
@@ -401,7 +401,7 @@ class Scene:
         root = -1.0
         p = Point([0.0, 0.0, 0.0])
         n = Point([0.0, 0.0, 0.0])
-        t = None
+        t = 0.0
         front_facing = True
 
         if hit:

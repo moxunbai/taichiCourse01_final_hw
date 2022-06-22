@@ -170,7 +170,7 @@ class MeshSimplify:
         self.vex_conn_snode.deactivate_all()
         self.vex_snode.deactivate_all()
         self.edge_snode.deactivate_all()
-        self.set_vexs_field(cntv,np.asarray(vertexs))
+        self.set_vexs_field(cntv,np.asarray(vertexs, dtype=np.float32))
         for i in range(cntf):
             face = faces[i]
             a = face[0]
@@ -233,13 +233,13 @@ class MeshSimplify:
            self.calVAndDeltaV(vid1, vid2, -1)
 
     @ti.kernel
-    def cal_vdeltav_dync(self, vid: ti.i32,m: ti.i32, vex_conn_arr: ti.ext_arr()):
+    def cal_vdeltav_dync(self, vid: ti.i32,m: ti.i32, vex_conn_arr: ti.types.ndarray()):
         for i in range(m):
            self.calVAndDeltaV(vid, vex_conn_arr[i], i,1)
 
 
     @ti.kernel
-    def set_vex_conn_field(self,m: ti.i32,arr: ti.ext_arr()):
+    def set_vex_conn_field(self,m: ti.i32,arr: ti.types.ndarray()):
         # self.vex_conn_field[0, 0] =12
         for i in range(m):
             for j in ti.static(range(MeshSimplify.MAX_VEX_CONNS)):
@@ -247,14 +247,14 @@ class MeshSimplify:
                     self.vex_conn_field[i,j]=arr[i,j]
 
     @ti.kernel
-    def update_vex_conn_field(self, m: ti.i32,  arr_idx: ti.ext_arr(),  arr_update: ti.ext_arr()):
+    def update_vex_conn_field(self, m: ti.i32,  arr_idx: ti.types.ndarray(),  arr_update: ti.types.ndarray()):
         for i in range(m):
             idx = arr_idx[i] - 1
             for j in range(MeshSimplify.MAX_VEX_CONNS) :
 
                 self.vex_conn_field[idx,j]=arr_update[i,j]
     @ti.kernel
-    def update_vex_conn_field111(self, m1: ti.i32, m2: ti.i32, arr_add: ti.ext_arr(), arr_removed: ti.ext_arr()):
+    def update_vex_conn_field111(self, m1: ti.i32, m2: ti.i32, arr_add: ti.types.ndarray(), arr_removed: ti.types.ndarray()):
         for i, j in self.vex_conn_field:
             for k in range(m2):
                 idx = arr_removed[k, 0] - 1
@@ -274,7 +274,7 @@ class MeshSimplify:
 
 
     @ti.kernel
-    def set_vexs_field(self,m: ti.i32,arr: ti.ext_arr()):
+    def set_vexs_field(self,m: ti.i32,arr: ti.types.ndarray()):
         for i in range(m):
             self.vex_field[i]=ti.Vector([arr[i,0],arr[i,1],arr[i,2]])
     @ti.func
@@ -482,7 +482,7 @@ class MeshSimplify:
                     k+=1
 
             j+=1
-        update_vexs_nparr=np.asarray(updateVexs)
+        update_vexs_nparr=np.asarray(updateVexs, dtype=np.float32)
         self.update_vex_conn_field(len(updateVexs),update_vexs_nparr ,uvex_nparr)
 
         del updateVexs
